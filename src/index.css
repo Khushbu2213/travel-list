@@ -115,13 +115,14 @@ input[type="checkbox"] {
   accent-color: #e5771f;
 }
 
-.list li button {
+.btn {
   cursor: pointer;
-  background: none;
+  background-color: #6c4f3c;
   border: none;
-  font-size: 1.8rem;
+  font-size: 1.2rem;
   padding: 0.8rem;
-  transform: translateY(2px);
+  /* transform: translateY(2px); */
+  transition: all ease-in-out 3s;
 }
 
 .stats {

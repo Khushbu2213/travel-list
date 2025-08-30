@@ -2,6 +2,7 @@ import { useState } from "react";
 import Item from "./Item";
 export default function PackingList({
   items,
+  onUpdateQty,
   onDeleteItem,
   onToggleItem,
   onClearItems,
@@ -26,6 +27,7 @@ export default function PackingList({
         {sortedItems.map((item) => (
           <Item
             item={item}
+            onUpdateQty={onUpdateQty}
             onDeleteItem={onDeleteItem}
             onToggleItem={onToggleItem}
             key={item.id}
@@ -33,14 +35,16 @@ export default function PackingList({
         ))}
       </ul>
 
-      <div className="actions">
-        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-          <option value="input">Sort by the input order</option>
-          <option value="description">Sort by description</option>
-          <option value="packed">Sort by packed status</option>
-        </select>
-        <button onClick={onClearItems}>Clear List</button>
-      </div>
+      {items.length > 1 && (
+        <div className="actions">
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+            <option value="input">Sort by the input order</option>
+            <option value="description">Sort by description</option>
+            <option value="packed">Sort by packed status</option>
+          </select>
+          <button onClick={onClearItems}>Clear List</button>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-export default function Form({ onAddItems }) {
+export default function Form({ items, onAddItems }) {
   const [description, setDescription] = useState("");
   const [quantity, setQuantity] = useState(1);
 
@@ -9,13 +9,17 @@ export default function Form({ onAddItems }) {
 
     if (!description) return;
 
-    const newItem = { description, quantity, packed: false, id: Date.now() };
-    console.log(newItem);
+    const newItem = {
+      description,
+      quantity,
+      packed: false,
+      id: Date.now(),
+    };
 
     onAddItems(newItem);
 
     setDescription("");
-    setQuantity("");
+    setQuantity(1);
   }
 
   return (
@@ -23,7 +27,9 @@ export default function Form({ onAddItems }) {
       <h3>What do you need for your 😍 trip?</h3>
       <select
         value={quantity}
-        onChange={(e) => setQuantity(Number(e.target.value))}
+        onChange={(e) => {
+          setQuantity(Number(e.target.value));
+        }}
       >
         {Array.from({ length: 20 }, (_, i) => i + 1).map((num) => (
           <option value={num} key={num}>
