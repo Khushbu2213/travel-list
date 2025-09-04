@@ -3,6 +3,9 @@ import Logo from "./Logo";
 import Form from "./Form";
 import PackingList from "./PackingList";
 import Stats from "./Stats";
+import Popup from "./Popup";
+
+import setLocalStorage from "./helper";
 
 export default function App() {
   const [items, setItems] = useState(() => {
@@ -10,33 +13,217 @@ export default function App() {
     return storedItems ? JSON.parse(storedItems) : [];
   });
 
-  const toCheck = (x) => x.toLowerCase().trim();
-  function handleAddItems(newItem) {
-    const comparison = (item) =>
-      toCheck(item.description) === toCheck(newItem.description) &&
-      item.packed === newItem.packed;
-    // console.log(item.packed)
-    // console.log(newItem.packed);
+  const [popupMessage, setPopupMessage] = useState("");
+  const [showPopup, setShowPopup] = useState(false);
+  // const [popupAnswer, setPopupAnswer] = useState(false);
+  const [currentUpdatedArray, setCurrentUpdatedArray] = useState([]);
+  const [currentItem, setCurrentItem] = useState("");
 
-    const exists = items.find(comparison);
-    // console.log(exists);
+  const toLowerCase = (x) => x?.toLowerCase().trim();
 
-    if (exists) {
-      const updatedItems = items.map((item) =>
-        comparison(item)
-          ? {
-              ...item,
-              quantity: item.quantity + newItem.quantity,
-            }
-          : item
+  function addItems(item) {
+    setItems((items) => [...items, item]);
+    setLocalStorage([...items, item]);
+  }
+
+  function updateItemArray(updatedArray) {
+    setItems(updatedArray);
+    setLocalStorage(updatedArray);
+  }
+
+  function handlePopup(popupResult) {
+    const existsSameLowercase = items.find(
+      (item) =>
+        toLowerCase(item.description) === toLowerCase(currentItem.description)
+    );
+
+    /////////////////////////
+    // For condition when user enters yes for Do u mean item??
+    if (popupResult && popupMessage.startsWith("Do u mean")) {
+      setShowPopup(true);
+      setPopupMessage(
+        `Do u want ${existsSameLowercase.description} packed or unpacked??`
+      );
+    }
+
+    /////////////////////////
+    // For condition when user enters yes for Do u want packed same item??
+    else if (popupResult && popupMessage.endsWith("unpacked??")) {
+      const condition = (item) =>
+        toLowerCase(item.description) ===
+          toLowerCase(currentItem.description) && item.packed === true;
+
+      const sameDescPackedTrue = items.find(condition);
+
+      if (sameDescPackedTrue) {
+        const updatedItems = items.map((item) =>
+          condition(item)
+            ? {
+                ...item,
+                description: existsSameLowercase.description,
+                quantity: item.quantity + currentItem.quantity,
+              }
+            : item
+        );
+        updateItemArray(updatedItems);
+        setShowPopup(false);
+        setCurrentItem("");
+      } else {
+        currentItem.packed = true;
+        currentItem.description = existsSameLowercase.description;
+        addItems(currentItem);
+        setShowPopup(false);
+        setCurrentItem("");
+      }
+    }
+
+    /////////////////////////
+    // For condition when user enters no for Do u want packed same item??
+    else if (!popupResult && popupMessage.endsWith("unpacked??")) {
+      const condition = (item) =>
+        toLowerCase(item.description) ===
+          toLowerCase(currentItem.description) && item.packed === false;
+
+      const sameDescPackedFalse = items.find(condition);
+      if (sameDescPackedFalse) {
+        const updatedItems = items.map((item) =>
+          condition(item)
+            ? {
+                ...item,
+                description: existsSameLowercase.description,
+                quantity: item.quantity + currentItem.quantity,
+              }
+            : item
+        );
+        updateItemArray(updatedItems);
+        setShowPopup(false);
+        setCurrentItem("");
+      } else {
+        currentItem.packed = false;
+        currentItem.description = existsSameLowercase.description;
+        addItems(currentItem);
+        setShowPopup(false);
+        setCurrentItem("");
+      }
+    }
+
+    /////////////////////////
+    // For condition when user enters yes for Do u want to merge same item??
+    else if (popupResult && popupMessage.startsWith("Do u want to merge")) {
+      const otherItemSmLowerDesc = currentUpdatedArray.find(
+        (item) =>
+          toLowerCase(item.description) ===
+            toLowerCase(currentItem.description) && item.id !== currentItem.id
       );
 
-      // console.log(updatedItems);
-      setItems(updatedItems);
-      localStorage.setItem("items", JSON.stringify(updatedItems));
+      const update = currentUpdatedArray
+        .map((item) =>
+          item.id === currentItem.id
+            ? {
+                ...item,
+                description: otherItemSmLowerDesc.description,
+                quantity: item.quantity + otherItemSmLowerDesc.quantity,
+              }
+            : item
+        )
+        .filter((item) => item.id !== otherItemSmLowerDesc.id);
+
+      updateItemArray(update);
+      setShowPopup(false);
+      setCurrentUpdatedArray([]);
+      setCurrentItem("");
+    }
+
+    /////////////////////////
+    // For condition when user enters no for Do u want to merge same item??
+    else if (!popupResult && popupMessage.startsWith("Do u want to merge")) {
+      updateItemArray(currentUpdatedArray);
+      setShowPopup(false);
+      setCurrentUpdatedArray([]);
+      setCurrentItem("");
+    }
+
+    /////////////////////////
+    // For condition when user enters yes for Do u want to delete item??
+    else if (popupResult && popupMessage.startsWith("Do u want to delete")) {
+      updateItemArray(currentUpdatedArray);
+      setShowPopup(false);
+      setCurrentUpdatedArray([]);
+      setCurrentItem("");
+    }
+
+    /////////////////////////
+    // For condition when user enters no for Do u want to delete item??
+    else if (!popupResult && popupMessage.startsWith("Do u want to delete")) {
+      setShowPopup(false);
+      setCurrentItem("");
+      setCurrentUpdatedArray([]);
+      setCurrentItem("");
+    }
+
+    /////////////////////////
+    // For condition when user enters yes for Do u want clear all items??
+    else if (popupResult && popupMessage.endsWith("the items?")) {
+      setShowPopup(false);
+      setItems([]);
+      setLocalStorage([]);
+    }
+
+    /////////////////////////
+    // For condition when user enters no for Do u want clear all items??
+    else if (!popupResult && popupMessage.endsWith("the items?")) {
+      setShowPopup(false);
+    }
+
+    /////////////////////////
+    // For condition when user enters no for Do u mean item??
+    else {
+      setShowPopup(false);
+      addItems(currentItem);
+      setCurrentItem("");
+    }
+  }
+
+  function handleAddItems(newItem) {
+    // For finding if there exists any item with exact same description
+    const existSmDesc = items.find(
+      (item) => item.description === newItem.description
+    );
+
+    // For finding if there exists same item as new item after coverting it in lowercase
+    const existSmLowerDesc = items.find(
+      (item) =>
+        toLowerCase(item.description) === toLowerCase(newItem.description)
+    );
+
+    if (existSmDesc) {
+      const samePacked = items.find(
+        (item) =>
+          item.description === newItem.description &&
+          item.packed === newItem.packed
+      );
+
+      if (samePacked) {
+        const update = items.map((item) =>
+          item.description === newItem.description &&
+          item.packed === newItem.packed
+            ? {
+                ...item,
+                quantity: item.quantity + newItem.quantity,
+              }
+            : item
+        );
+        updateItemArray(update);
+      } else {
+        addItems(newItem);
+      }
+    } else if (existSmLowerDesc) {
+      setShowPopup(true);
+      setPopupMessage(`Do u mean ${existSmLowerDesc.description}??`);
+      setCurrentItem(newItem);
     } else {
-      setItems((items) => [...items, newItem]); // add new item to the array
-      localStorage.setItem("items", JSON.stringify([...items, newItem]));
+      addItems(newItem);
+      setCurrentItem("");
     }
   }
 
@@ -67,10 +254,13 @@ export default function App() {
   }
 
   function handleDeleteItem(id) {
+    const deleteditem = items.find((item) => item.id === id);
     const updatedItems = items.filter((item) => item.id !== id);
 
-    setItems((items) => updatedItems);
-    localStorage.setItem("items", JSON.stringify(updatedItems));
+    setShowPopup(true);
+    setPopupMessage(`Do u want to delete ${deleteditem.description}?`);
+    setCurrentItem(deleteditem);
+    setCurrentUpdatedArray(updatedItems);
   }
 
   function handleToggleItem(id) {
@@ -79,42 +269,49 @@ export default function App() {
       return item.id === id ? { ...item, packed: !item.packed } : item;
     });
 
-    // console.log(updatedItems);
-
     const toggleItem = updatedItems.find((item) => item.id === id);
     if (toggleItem.packed === true) document.querySelector(".btn");
-    const otherItem = updatedItems.find(
+
+    // For finding if there exists exact same item as toggle item (case-sensitive)
+    const otherItemSmDesc = updatedItems.find(
+      (item) => item.description === toggleItem.description && item.id !== id
+    );
+
+    // For finding if there exists same item as toggle item after coverting it in lowercase
+    const otherItemSmLowerDesc = updatedItems.find(
       (item) =>
-        toCheck(item.description) === toCheck(toggleItem.description) &&
+        toLowerCase(item.description) === toLowerCase(toggleItem.description) &&
         item.id !== id
     );
-    // console.log(toggleItem);
-    // console.log(otherItem);
 
-    if (otherItem && otherItem.packed === toggleItem.packed) {
+    if (otherItemSmDesc && otherItemSmDesc.packed === toggleItem.packed) {
       const update = updatedItems
         .map((item) =>
           item.id === id
-            ? { ...item, quantity: item.quantity + otherItem.quantity }
+            ? { ...item, quantity: item.quantity + otherItemSmDesc.quantity }
             : item
         )
-        .filter((item) => item.id !== otherItem.id);
-      setItems(update);
-      localStorage.setItem("items", JSON.stringify(update));
+        .filter((item) => item.id !== otherItemSmDesc.id);
+
+      updateItemArray(update);
+    } else if (
+      otherItemSmLowerDesc &&
+      otherItemSmLowerDesc.packed === toggleItem.packed
+    ) {
+      setShowPopup(true);
+      setPopupMessage(
+        `Do u want to merge ${otherItemSmLowerDesc.description} and ${toggleItem.description}?`
+      );
+      setCurrentItem(toggleItem);
+      setCurrentUpdatedArray(updatedItems);
     } else {
-      setItems(updatedItems);
-      localStorage.setItem("items", JSON.stringify(updatedItems));
+      updateItemArray(updatedItems);
     }
   }
 
   function handleClearItems() {
-    const confirmed = window.confirm(
-      "Are you sure you want delete all the items?"
-    );
-    if (confirmed) {
-      setItems([]);
-      localStorage.removeItem("items");
-    }
+    setShowPopup(true);
+    setPopupMessage("Are you sure you want delete all the items?");
   }
   return (
     <div className="app">
@@ -128,6 +325,7 @@ export default function App() {
         onClearItems={handleClearItems}
       />
       <Stats items={items} />
+      {showPopup && <Popup message={popupMessage} handlePopup={handlePopup} />}
     </div>
   );
 }
