@@ -40,15 +40,37 @@ export default function App() {
     /////////////////////////
     // For condition when user enters yes for Do u mean item??
     if (popupResult && popupMessage.startsWith("Do u mean")) {
-      setShowPopup(true);
-      setPopupMessage(
-        `Do u want ${existsSameLowercase.description} packed or unpacked??`
-      );
+      if (existsSameLowercase.packed === currentItem.packed) {
+        const updatedItems = items.map((item) =>
+          item.description === existsSameLowercase.description &&
+          item.packed === existsSameLowercase.packed
+            ? {
+                ...item,
+                quantity: item.quantity + currentItem.quantity,
+              }
+            : item
+        );
+        updateItemArray(updatedItems);
+        setShowPopup(false);
+        setCurrentItem("");
+      } else {
+        setShowPopup(true);
+        setPopupMessage(
+          `This item is already ${
+            existsSameLowercase.packed ? "packed" : "unpacked"
+          } Do u want ${existsSameLowercase.description} packed?`
+        );
+        // setCurrentItem(existsSameLowercase);
+      }
     }
 
     /////////////////////////
     // For condition when user enters yes for Do u want packed same item??
-    else if (popupResult && popupMessage.endsWith("unpacked??")) {
+    else if (
+      popupResult &&
+      (popupMessage.endsWith("packed?") ||
+        popupMessage.startsWith("This item is already packed."))
+    ) {
       const condition = (item) =>
         toLowerCase(item.description) ===
           toLowerCase(currentItem.description) && item.packed === true;
@@ -75,11 +97,24 @@ export default function App() {
         setShowPopup(false);
         setCurrentItem("");
       }
+    } else if (
+      !popupResult &&
+      popupMessage.startsWith("This item is already packed.")
+    ) {
+      addItems(currentItem);
+      setShowPopup(false);
+      setCurrentItem("");
     }
-
+    // else if (
+    //   popupResult &&
+    //   popupMessage.startsWith("This item is already packed.")
+    // ) {
+    //   setShowPopup(false);
+    //   setCurrentItem("");
+    // }
     /////////////////////////
     // For condition when user enters no for Do u want packed same item??
-    else if (!popupResult && popupMessage.endsWith("unpacked??")) {
+    else if (!popupResult && popupMessage.endsWith("packed?")) {
       const condition = (item) =>
         toLowerCase(item.description) ===
           toLowerCase(currentItem.description) && item.packed === false;
@@ -95,6 +130,7 @@ export default function App() {
               }
             : item
         );
+        // .filter((item) => item.id !== currentItem.id);
         updateItemArray(updatedItems);
         setShowPopup(false);
         setCurrentItem("");
@@ -215,7 +251,12 @@ export default function App() {
         );
         updateItemArray(update);
       } else {
-        addItems(newItem);
+        setShowPopup(true);
+        setPopupMessage(
+          `This item is already packed. Do u want ${existSmDesc.description} packed??`
+        );
+        setCurrentItem(newItem);
+        // addItems(newItem);
       }
     } else if (existSmLowerDesc) {
       setShowPopup(true);
@@ -234,7 +275,8 @@ export default function App() {
         item.id === id ? { ...item, quantity: item.quantity + 1 } : item
       );
       setItems(update);
-      localStorage.setItem("items", JSON.stringify(update));
+      setLocalStorage(update);
+      // localStorage.setItem("items", JSON.stringify(update));
     } else {
       if (updatedItem.quantity !== 1) {
         const update = items.map((item) =>
@@ -246,7 +288,8 @@ export default function App() {
             : item
         );
         setItems(update);
-        localStorage.setItem("items", JSON.stringify(update));
+        setLocalStorage(update);
+        // localStorage.setItem("items", JSON.stringify(update));
       } else {
         handleDeleteItem(id);
       }

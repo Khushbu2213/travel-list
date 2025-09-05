@@ -6,9 +6,13 @@ export default function Stats({ items }) {
       </p>
     );
 
-  const numItems = items.length;
-  const numPacked = items.filter((item) => item.packed).length;
-  const packedPer = Math.round((numPacked / numItems) * 100);
+  const numItems = items.reduce((total, item) => total + item.quantity, 0);
+  const packedItems = items.reduce((total, item) => {
+    if (item.packed) return total + item.quantity;
+    return total;
+  }, 0);
+
+  const packedPer = Math.round((packedItems / numItems) * 100);
 
   return (
     <footer className="stats">
@@ -16,7 +20,7 @@ export default function Stats({ items }) {
         {packedPer === 100
           ? `You packed everything! Ready to go ✈`
           : `💼You
-        have ${numItems} items in your list, and you already packed ${numPacked}(
+        have ${numItems} items in your list, and you already packed ${packedItems}(
         ${packedPer}
         %)`}
       </em>
